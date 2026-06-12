@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>即時轉寫助手</title>
+    <title>多語言即時翻譯</title>
     <style>
         :root { --bg: #f2f2f7; --bubble: #ffffff; --text: #000000; --primary: #007AFF; }
         .dark-mode { --bg: #1c1c1e; --bubble: #2c2c2e; --text: #ffffff; --primary: #0a84ff; }
@@ -11,41 +11,52 @@
         
         #app-container { display: flex; flex-direction: column; height: 100vh; }
         #output { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
-        .msg { background: var(--bubble); padding: 12px 16px; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 85%; align-self: flex-start; font-size: 18px; line-height: 1.5; }
+        .msg { background: var(--bubble); padding: 12px 16px; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 90%; align-self: flex-start; font-size: 19px; line-height: 1.5; }
         
-        .toolbar { background: var(--bubble); padding: 15px; display: flex; justify-content: space-between; border-top: 1px solid #ddd; gap: 8px; }
-        button { border: none; padding: 12px 18px; border-radius: 20px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .toolbar { background: var(--bubble); padding: 15px; display: flex; flex-wrap: wrap; gap: 8px; border-top: 1px solid #ddd; }
+        select, button { padding: 12px; border-radius: 20px; border: none; font-weight: 600; cursor: pointer; }
         .btn-start { background: var(--primary); color: white; flex-grow: 2; }
-        .btn-secondary { background: #8e8e93; color: white; }
     </style>
 </head>
 <body>
     <div id="app-container">
-        <div id="output">
-            <div class="msg">點擊「開始轉寫」以進行語音轉文字...</div>
-        </div>
+        <div id="output"><div class="msg">請選擇語言並點擊開始轉寫...</div></div>
         
         <div class="toolbar">
-            <button id="start-btn" class="btn-start" onclick="startRecognition()">開始轉寫</button>
-            <button class="btn-secondary" onclick="toggleDarkMode()">模式</button>
-            <button class="btn-secondary" onclick="downloadText()">匯出</button>
+            <select id="lang-select">
+                <option value="zh-TW">繁體中文 (台灣)</option>
+                <option value="en-US">English (US)</option>
+                <option value="ja-JP">日本語</option>
+                <option value="ko-KR">한국어</option>
+                <option value="zh-CN">简体中文</option>
+            </select>
+            <button id="start-btn" class="btn-start" onclick="toggleRecognition()">開始轉寫</button>
+            <button onclick="downloadText()">匯出</button>
+            <button onclick="toggleDarkMode()">模式</button>
         </div>
     </div>
 
     <script>
         const output = document.getElementById('output');
         const startBtn = document.getElementById('start-btn');
+        const langSelect = document.getElementById('lang-select');
         let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'zh-TW';
+        let isListening = false;
+        let currentMsg = null;
+
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        let currentMsg = null;
-
-        function startRecognition() {
-            recognition.start();
-            startBtn.innerText = "監聽中...";
-            startBtn.style.background = "#34c759";
+        function toggleRecognition() {
+            if (isListening) {
+                recognition.stop();
+                startBtn.innerText = "開始監聽";
+            } else {
+                recognition.lang = langSelect.value;
+                recognition.start();
+                startBtn.innerText = "停止監聽";
+            }
+            isListening = !isListening;
         }
 
         recognition.onresult = (event) => {
@@ -53,28 +64,23 @@
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 transcript += event.results[i][0].transcript;
             }
-
             if (!currentMsg) {
                 currentMsg = document.createElement('div');
                 currentMsg.className = 'msg';
                 output.appendChild(currentMsg);
             }
             currentMsg.innerText = transcript;
-            
-            if (event.results[event.results.length - 1].isFinal) {
-                currentMsg = null;
-            }
+            if (event.results[event.results.length - 1].isFinal) currentMsg = null;
             output.scrollTop = output.scrollHeight;
         };
 
         function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
-
         function downloadText() {
             const text = Array.from(document.querySelectorAll('.msg')).map(m => m.innerText).join('\n');
             const blob = new Blob([text], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = '逐字稿.txt';
+            a.download = '轉寫紀錄.txt';
             a.click();
         }
     </script>
