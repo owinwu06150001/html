@@ -2,29 +2,33 @@
 <html lang="zh-Hant-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>即時語音轉文字</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>聽障輔助語音轉文字</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #f4f4f9; }
-        .container { max-width: 800px; margin: auto; }
-        #output { border: 2px solid #ddd; padding: 20px; min-height: 400px; background: white; border-radius: 10px; white-space: pre-wrap; font-size: 24px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .controls { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-        button { padding: 12px 24px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; color: white; }
+        body { font-family: sans-serif; padding: 10px; background-color: #f4f4f9; margin: 0; }
+        .container { max-width: 600px; margin: auto; }
+        #output { border: 2px solid #ddd; padding: 15px; height: 60vh; background: white; border-radius: 10px; white-space: pre-wrap; font-size: 20px; overflow-y: auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        button { padding: 15px; font-size: 18px; cursor: pointer; border: none; border-radius: 8px; color: white; font-weight: bold; }
         #start-btn { background-color: #28a745; }
         #stop-btn { background-color: #dc3545; }
-        .status { padding: 10px; border-radius: 5px; margin-bottom: 10px; font-weight: bold; }
-        .listening { background-color: #ffc107; }
+        .secondary-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .status { padding: 8px; border-radius: 5px; margin-bottom: 10px; font-weight: bold; text-align: center; background: #ddd; }
+        .listening { background-color: #ffc107; color: #000; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>聽障輔助語音轉文字</h1>
+        <h2 style="text-align: center;">語音轉文字</h2>
+        <div id="status-bar" class="status">狀態：等待中</div>
         <div class="controls">
             <button id="start-btn">開始聆聽</button>
             <button id="stop-btn" disabled>停止</button>
+        </div>
+        <div class="secondary-btns">
+            <button onclick="copyText()" style="background-color: #007bff;">複製文字</button>
             <button onclick="clearText()" style="background-color: #6c757d;">清除紀錄</button>
         </div>
-        <div id="status-bar" class="status">狀態：等待中</div>
         <div id="output"></div>
     </div>
 
@@ -59,6 +63,8 @@
                 }
             }
             output.innerText = finalTranscript + interimTranscript;
+            // 自動捲動到底部
+            output.scrollTop = output.scrollHeight;
         };
 
         recognition.onend = () => {
@@ -70,9 +76,16 @@
 
         startBtn.onclick = () => recognition.start();
         stopBtn.onclick = () => recognition.stop();
+        
         function clearText() {
             finalTranscript = '';
             output.innerText = '';
+        }
+
+        function copyText() {
+            navigator.clipboard.writeText(output.innerText).then(() => {
+                alert("文字已複製到剪貼簿");
+            });
         }
     </script>
 </body>
