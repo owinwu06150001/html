@@ -3,83 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>聽障專業輔助轉寫</title>
+    <title>即時轉寫助手</title>
     <style>
-        :root { --bg: #f4f4f9; --text: #333; --box: #fff; }
-        .dark-mode { --bg: #1a1a1a; --text: #eee; --box: #333; }
-        body { font-family: sans-serif; padding: 10px; background-color: var(--bg); color: var(--text); margin: 0; transition: 0.3s; }
-        .container { max-width: 600px; margin: auto; }
-        #output { border: 2px solid #ddd; padding: 15px; height: 45vh; background: var(--box); border-radius: 10px; white-space: pre-wrap; font-size: 24px; overflow-y: auto; margin-bottom: 10px; }
-        .grid-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-        button { padding: 12px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; }
-        .btn-main { background-color: #28a745; color: white; }
-        .btn-stop { background-color: #dc3545; color: white; }
-        .btn-sub { background-color: #6c757d; color: white; }
-        .info-bar { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px; }
+        :root { --bg: #f2f2f7; --bubble: #ffffff; --text: #000000; --primary: #007AFF; }
+        .dark-mode { --bg: #1c1c1e; --bubble: #2c2c2e; --text: #ffffff; --primary: #0a84ff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; transition: 0.3s; }
+        
+        #app-container { display: flex; flex-direction: column; height: 100vh; }
+        #output { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .msg { background: var(--bubble); padding: 12px 16px; border-radius: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); max-width: 85%; align-self: flex-start; font-size: 18px; line-height: 1.5; }
+        
+        .toolbar { background: var(--bubble); padding: 15px; display: flex; justify-content: space-between; border-top: 1px solid #ddd; gap: 8px; }
+        button { border: none; padding: 12px 18px; border-radius: 20px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-start { background: var(--primary); color: white; flex-grow: 2; }
+        .btn-secondary { background: #8e8e93; color: white; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2 style="text-align: center;">即時輔助轉寫系統</h2>
+    <div id="app-container">
+        <div id="output">
+            <div class="msg">點擊「開始轉寫」以進行語音轉文字...</div>
+        </div>
         
-        <div class="info-bar">
-            <span id="word-count">字數: 0</span>
-            <button onclick="toggleDarkMode()">切換深色/淺色</button>
+        <div class="toolbar">
+            <button id="start-btn" class="btn-start" onclick="startRecognition()">開始轉寫</button>
+            <button class="btn-secondary" onclick="toggleDarkMode()">模式</button>
+            <button class="btn-secondary" onclick="downloadText()">匯出</button>
         </div>
-
-        <div class="grid-btns">
-            <button id="start-btn" class="btn-main">開始聆聽</button>
-            <button id="stop-btn" class="btn-stop" disabled>停止</button>
-        </div>
-
-        <div class="grid-btns">
-            <button onclick="copyText()" class="btn-sub">複製內容</button>
-            <button onclick="downloadText()" class="btn-sub">匯出 .txt</button>
-        </div>
-
-        <div class="controls-small" style="margin-bottom:10px">
-            <input type="checkbox" id="privacyMode" onchange="togglePrivacy()"> <label>隱私模式 (僅顯示最終結果)</label>
-        </div>
-
-        <div id="output"></div>
     </div>
 
     <script>
         const output = document.getElementById('output');
-        const wordCount = document.getElementById('word-count');
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        
+        const startBtn = document.getElementById('start-btn');
+        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = 'zh-TW';
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        let finalTranscript = '';
-        let privacyMode = false;
+        let currentMsg = null;
 
-        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
-        function togglePrivacy() { privacyMode = document.getElementById('privacyMode').checked; }
+        function startRecognition() {
+            recognition.start();
+            startBtn.innerText = "監聽中...";
+            startBtn.style.background = "#34c759";
+        }
 
         recognition.onresult = (event) => {
-            let interim = '';
+            let transcript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' ';
-                else if (!privacyMode) interim += event.results[i][0].transcript;
+                transcript += event.results[i][0].transcript;
             }
-            output.innerText = finalTranscript + interim;
-            wordCount.innerText = "字數: " + output.innerText.length;
+
+            if (!currentMsg) {
+                currentMsg = document.createElement('div');
+                currentMsg.className = 'msg';
+                output.appendChild(currentMsg);
+            }
+            currentMsg.innerText = transcript;
+            
+            if (event.results[event.results.length - 1].isFinal) {
+                currentMsg = null;
+            }
             output.scrollTop = output.scrollHeight;
         };
 
-        // 綁定事件
-        document.getElementById('start-btn').onclick = () => recognition.start();
-        document.getElementById('stop-btn').onclick = () => recognition.stop();
-        
-        function copyText() { navigator.clipboard.writeText(output.innerText); alert("已複製"); }
+        function toggleDarkMode() { document.body.classList.toggle('dark-mode'); }
+
         function downloadText() {
-            const blob = new Blob([output.innerText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
+            const text = Array.from(document.querySelectorAll('.msg')).map(m => m.innerText).join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
             const a = document.createElement('a');
-            a.href = url; a.download = '筆記.txt'; a.click();
+            a.href = URL.createObjectURL(blob);
+            a.download = '逐字稿.txt';
+            a.click();
         }
     </script>
 </body>
